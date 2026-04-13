@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.7",
     "better-react-mathjax": "^2.4.0-beta-1",
     "html-react-parser": "^5.2.11",
+    "katex": "^0.16.45",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
