@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   Alert,
   Box,
   Button,
   Divider,
+  Drawer,
   Grid,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
-import { ContentCopy, PlaylistAdd, RestartAlt } from "@mui/icons-material";
+import { Category, ContentCopy, PlaylistAdd, RestartAlt } from "@mui/icons-material";
 import RenderHTML from "./RenderHTML";
 
 const EASY_EQUATIONS = [
@@ -49,6 +50,18 @@ const EASY_EQUATIONS = [
   { title: "2x2 Matrix", code: "\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}" },
   { title: "Determinant 2x2", code: "\\det\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}=ad-bc" },
   { title: "Piecewise", code: "f(x)=\\begin{cases}x^2,&x<0\\\\x,&x\\ge0\\end{cases}" },
+  {
+    title: "Square Bracket Rational Form",
+    code: "\\left[\\frac{x+\\frac{1}{x^2}}{x-\\frac{1}{x^2+1}}\\right]+m\\sqrt{3}",
+  },
+  {
+    title: "Round Bracket Rational Form",
+    code: "\\left(\\frac{x+\\frac{1}{x^2}}{x-\\frac{1}{x^2+1}}\\right)+m\\sqrt{3}",
+  },
+  {
+    title: "Curly Bracket Rational Form",
+    code: "\\left\\{\\frac{x+\\frac{1}{x^2}}{x-\\frac{1}{x^2+1}}\\right\\}+m\\sqrt{3}",
+  },
   { title: "Equation with Newline", code: "Given: $x+y=10$ \\n Also: $x-y=2$" },
   { title: "Step Style Newline", code: "Step 1: Assume value \\n Step 2: Substitute formula \\n Step 3: Final answer" },
 ];
@@ -96,6 +109,282 @@ const HARD_EQUATIONS = [
 
 const DEFAULT_SNIPPET = "";
 
+const SYMBOL_GROUPS = [
+  {
+    title: "Reference Symbols",
+    helper: "From your attached sample",
+    items: [
+      { symbol: "\u03c0", label: "Pi", code: "\\pi" },
+      { symbol: "\u00b1", label: "Plus Minus", code: "\\pm" },
+      { symbol: "\u21d2", label: "Implies", code: "\\Rightarrow" },
+      { symbol: "\u2192", label: "Arrow", code: "\\rightarrow" },
+      { symbol: "\u2265", label: "Greater or Equal", code: "\\ge" },
+      { symbol: "\u2264", label: "Less or Equal", code: "\\le" },
+      { symbol: "\u2234", label: "Therefore", code: "\\therefore" },
+    ],
+  },
+  {
+    title: "Arithmetic Operators",
+    helper: "Basic and advanced operators",
+    items: [
+      { symbol: "+", label: "Plus", code: "+" },
+      { symbol: "-", label: "Minus", code: "-" },
+      { symbol: "\u00d7", label: "Multiply", code: "\\times" },
+      { symbol: "\u00f7", label: "Divide", code: "\\div" },
+      { symbol: "\u00b7", label: "Dot Product Dot", code: "\\cdot" },
+      { symbol: "\u2217", label: "Asterisk Product", code: "\\ast" },
+      { symbol: "\u22c6", label: "Star Product", code: "\\star" },
+      { symbol: "\u2218", label: "Composition", code: "\\circ" },
+      { symbol: "\u00b1", label: "Plus Minus", code: "\\pm" },
+      { symbol: "\u2213", label: "Minus Plus", code: "\\mp" },
+      { symbol: "\u2295", label: "Direct Sum", code: "\\oplus" },
+      { symbol: "\u2296", label: "Circled Minus", code: "\\ominus" },
+      { symbol: "\u2297", label: "Circled Times", code: "\\otimes" },
+      { symbol: "\u2298", label: "Circled Divide", code: "\\oslash" },
+      { symbol: "\u2299", label: "Circled Dot", code: "\\odot" },
+      { symbol: "\u221a", label: "Square Root", code: "\\sqrt{x}" },
+    ],
+  },
+  {
+    title: "Relations and Comparison",
+    helper: "Equality and ordering symbols",
+    items: [
+      { symbol: "=", label: "Equal", code: "=" },
+      { symbol: "\u2260", label: "Not Equal", code: "\\neq" },
+      { symbol: "\u2248", label: "Approximately Equal", code: "\\approx" },
+      { symbol: "\u2245", label: "Congruent", code: "\\cong" },
+      { symbol: "\u2243", label: "Asymptotically Equal", code: "\\simeq" },
+      { symbol: "\u223c", label: "Similar", code: "\\sim" },
+      { symbol: "\u2261", label: "Equivalent", code: "\\equiv" },
+      { symbol: "<", label: "Less Than", code: "<" },
+      { symbol: ">", label: "Greater Than", code: ">" },
+      { symbol: "\u2264", label: "Less or Equal", code: "\\leq" },
+      { symbol: "\u2265", label: "Greater or Equal", code: "\\geq" },
+      { symbol: "\u226a", label: "Much Less Than", code: "\\ll" },
+      { symbol: "\u226b", label: "Much Greater Than", code: "\\gg" },
+      { symbol: "\u221d", label: "Proportional To", code: "\\propto" },
+      { symbol: "\u2223", label: "Divides", code: "\\mid" },
+      { symbol: "\u2224", label: "Not Divides", code: "\\nmid" },
+      { symbol: "\u2225", label: "Parallel", code: "\\parallel" },
+      { symbol: "\u2226", label: "Not Parallel", code: "\\nparallel" },
+      { symbol: "\u22a5", label: "Perpendicular", code: "\\perp" },
+    ],
+  },
+  {
+    title: "Arrows",
+    helper: "Direction and implication symbols",
+    items: [
+      { symbol: "\u2190", label: "Left Arrow", code: "\\leftarrow" },
+      { symbol: "\u2192", label: "Right Arrow", code: "\\rightarrow" },
+      { symbol: "\u2194", label: "Left Right Arrow", code: "\\leftrightarrow" },
+      { symbol: "\u2191", label: "Up Arrow", code: "\\uparrow" },
+      { symbol: "\u2193", label: "Down Arrow", code: "\\downarrow" },
+      { symbol: "\u21d0", label: "Left Implies", code: "\\Leftarrow" },
+      { symbol: "\u21d2", label: "Right Implies", code: "\\Rightarrow" },
+      { symbol: "\u21d4", label: "Equivalent Implies", code: "\\Leftrightarrow" },
+      { symbol: "\u21a6", label: "Maps To", code: "\\mapsto" },
+      { symbol: "\u21a9", label: "Hook Left Arrow", code: "\\hookleftarrow" },
+      { symbol: "\u21aa", label: "Hook Right Arrow", code: "\\hookrightarrow" },
+      { symbol: "\u2197", label: "North East Arrow", code: "\\nearrow" },
+      { symbol: "\u2198", label: "South East Arrow", code: "\\searrow" },
+      { symbol: "\u2196", label: "North West Arrow", code: "\\nwarrow" },
+      { symbol: "\u2199", label: "South West Arrow", code: "\\swarrow" },
+    ],
+  },
+  {
+    title: "Set Theory",
+    helper: "Set relations and number sets",
+    items: [
+      { symbol: "\u2208", label: "Element Of", code: "\\in" },
+      { symbol: "\u2209", label: "Not Element Of", code: "\\notin" },
+      { symbol: "\u220b", label: "Contains As Member", code: "\\ni" },
+      { symbol: "\u2205", label: "Empty Set", code: "\\emptyset" },
+      { symbol: "\u222a", label: "Union", code: "\\cup" },
+      { symbol: "\u2229", label: "Intersection", code: "\\cap" },
+      { symbol: "\u2282", label: "Subset", code: "\\subset" },
+      { symbol: "\u2286", label: "Subset or Equal", code: "\\subseteq" },
+      { symbol: "\u2284", label: "Not Subset", code: "\\nsubseteq" },
+      { symbol: "\u2283", label: "Superset", code: "\\supset" },
+      { symbol: "\u2287", label: "Superset or Equal", code: "\\supseteq" },
+      { symbol: "\u2216", label: "Set Minus", code: "\\setminus" },
+      { symbol: "\u2115", label: "Natural Numbers", code: "\\mathbb{N}" },
+      { symbol: "\u2124", label: "Integers", code: "\\mathbb{Z}" },
+      { symbol: "\u211a", label: "Rational Numbers", code: "\\mathbb{Q}" },
+      { symbol: "\u211d", label: "Real Numbers", code: "\\mathbb{R}" },
+      { symbol: "\u2102", label: "Complex Numbers", code: "\\mathbb{C}" },
+      { symbol: "\u2119", label: "Prime Set", code: "\\mathbb{P}" },
+    ],
+  },
+  {
+    title: "Logic and Proof",
+    helper: "Proof writing symbols",
+    items: [
+      { symbol: "\u2200", label: "For All", code: "\\forall" },
+      { symbol: "\u2203", label: "There Exists", code: "\\exists" },
+      { symbol: "\u2204", label: "There Does Not Exist", code: "\\nexists" },
+      { symbol: "\u00ac", label: "Negation", code: "\\neg" },
+      { symbol: "\u2227", label: "Logical And", code: "\\land" },
+      { symbol: "\u2228", label: "Logical Or", code: "\\lor" },
+      { symbol: "\u22bb", label: "Xor", code: "\\veebar" },
+      { symbol: "\u22a2", label: "Turnstile", code: "\\vdash" },
+      { symbol: "\u22a8", label: "Models", code: "\\models" },
+      { symbol: "\u22a4", label: "Top", code: "\\top" },
+      { symbol: "\u22a5", label: "Bottom", code: "\\bot" },
+      { symbol: "\u2234", label: "Therefore", code: "\\therefore" },
+      { symbol: "\u2235", label: "Because", code: "\\because" },
+    ],
+  },
+  {
+    title: "Calculus and Analysis",
+    helper: "Differentiation, integration, limits",
+    items: [
+      { symbol: "\u222b", label: "Integral", code: "\\int" },
+      { symbol: "\u222c", label: "Double Integral", code: "\\iint" },
+      { symbol: "\u222d", label: "Triple Integral", code: "\\iiint" },
+      { symbol: "\u222e", label: "Contour Integral", code: "\\oint" },
+      { symbol: "\u2211", label: "Summation", code: "\\sum" },
+      { symbol: "\u220f", label: "Product", code: "\\prod" },
+      { symbol: "\u2210", label: "Coproduct", code: "\\coprod" },
+      { symbol: "\u2202", label: "Partial Derivative", code: "\\partial" },
+      { symbol: "\u2207", label: "Nabla", code: "\\nabla" },
+      { symbol: "\u0394", label: "Delta Change", code: "\\Delta" },
+      { symbol: "\u221e", label: "Infinity", code: "\\infty" },
+      { symbol: "\u2032", label: "Prime", code: "\\prime" },
+      { symbol: "\u2033", label: "Double Prime", code: "\\prime\\prime" },
+      { symbol: "\u2207\u00b7", label: "Divergence", code: "\\nabla\\cdot" },
+      { symbol: "\u2207\u00d7", label: "Curl", code: "\\nabla\\times" },
+      { symbol: "lim", label: "Limit", code: "\\lim_{x\\to a}" },
+    ],
+  },
+  {
+    title: "Geometry and Trigonometry",
+    helper: "Shapes, angles, and trig shortcuts",
+    items: [
+      { symbol: "\u2220", label: "Angle", code: "\\angle" },
+      { symbol: "\u2221", label: "Measured Angle", code: "\\measuredangle" },
+      { symbol: "\u2222", label: "Spherical Angle", code: "\\sphericalangle" },
+      { symbol: "\u25b3", label: "Triangle", code: "\\triangle" },
+      { symbol: "\u25a1", label: "Square", code: "\\square" },
+      { symbol: "\u00b0", label: "Degree", code: "^\\circ" },
+      { symbol: "\u22a5", label: "Perpendicular", code: "\\perp" },
+      { symbol: "\u2225", label: "Parallel", code: "\\parallel" },
+      { symbol: "sin", label: "Sine", code: "\\sin" },
+      { symbol: "cos", label: "Cosine", code: "\\cos" },
+      { symbol: "tan", label: "Tangent", code: "\\tan" },
+    ],
+  },
+  {
+    title: "Brackets and Delimiters",
+    helper: "Grouping and absolute value",
+    items: [
+      { symbol: "()", label: "Parentheses", code: "\\left( x \\right)" },
+      { symbol: "[]", label: "Square Brackets", code: "\\left[ x \\right]" },
+      { symbol: "{}", label: "Curly Braces", code: "\\left\\{ x \\right\\}" },
+      { symbol: "||", label: "Absolute Value", code: "\\left| x \\right|" },
+      { symbol: "\u2016", label: "Norm", code: "\\left\\| x \\right\\|" },
+      { symbol: "\u230a", label: "Floor Left", code: "\\lfloor" },
+      { symbol: "\u230b", label: "Floor Right", code: "\\rfloor" },
+      { symbol: "\u2308", label: "Ceil Left", code: "\\lceil" },
+      { symbol: "\u2309", label: "Ceil Right", code: "\\rceil" },
+      { symbol: "\u27e8", label: "Angle Bracket Left", code: "\\langle" },
+      { symbol: "\u27e9", label: "Angle Bracket Right", code: "\\rangle" },
+    ],
+  },
+  {
+    title: "Greek Lowercase",
+    helper: "Frequently used lowercase Greek letters",
+    items: [
+      { symbol: "\u03b1", label: "Alpha", code: "\\alpha" },
+      { symbol: "\u03b2", label: "Beta", code: "\\beta" },
+      { symbol: "\u03b3", label: "Gamma", code: "\\gamma" },
+      { symbol: "\u03b4", label: "Delta", code: "\\delta" },
+      { symbol: "\u03b5", label: "Epsilon", code: "\\epsilon" },
+      { symbol: "\u03f5", label: "Var Epsilon", code: "\\varepsilon" },
+      { symbol: "\u03b6", label: "Zeta", code: "\\zeta" },
+      { symbol: "\u03b7", label: "Eta", code: "\\eta" },
+      { symbol: "\u03b8", label: "Theta", code: "\\theta" },
+      { symbol: "\u03d1", label: "Var Theta", code: "\\vartheta" },
+      { symbol: "\u03b9", label: "Iota", code: "\\iota" },
+      { symbol: "\u03ba", label: "Kappa", code: "\\kappa" },
+      { symbol: "\u03bb", label: "Lambda", code: "\\lambda" },
+      { symbol: "\u03bc", label: "Mu", code: "\\mu" },
+      { symbol: "\u03bd", label: "Nu", code: "\\nu" },
+      { symbol: "\u03be", label: "Xi", code: "\\xi" },
+      { symbol: "\u03bf", label: "Omicron", code: "o" },
+      { symbol: "\u03c0", label: "Pi", code: "\\pi" },
+      { symbol: "\u03d6", label: "Var Pi", code: "\\varpi" },
+      { symbol: "\u03c1", label: "Rho", code: "\\rho" },
+      { symbol: "\u03f1", label: "Var Rho", code: "\\varrho" },
+      { symbol: "\u03c3", label: "Sigma", code: "\\sigma" },
+      { symbol: "\u03c2", label: "Var Sigma", code: "\\varsigma" },
+      { symbol: "\u03c4", label: "Tau", code: "\\tau" },
+      { symbol: "\u03c5", label: "Upsilon", code: "\\upsilon" },
+      { symbol: "\u03c6", label: "Phi", code: "\\phi" },
+      { symbol: "\u03d5", label: "Var Phi", code: "\\varphi" },
+      { symbol: "\u03c7", label: "Chi", code: "\\chi" },
+      { symbol: "\u03c8", label: "Psi", code: "\\psi" },
+      { symbol: "\u03c9", label: "Omega", code: "\\omega" },
+    ],
+  },
+  {
+    title: "Greek Uppercase",
+    helper: "Common uppercase Greek letters",
+    items: [
+      { symbol: "\u0393", label: "Gamma", code: "\\Gamma" },
+      { symbol: "\u0394", label: "Delta", code: "\\Delta" },
+      { symbol: "\u0398", label: "Theta", code: "\\Theta" },
+      { symbol: "\u039b", label: "Lambda", code: "\\Lambda" },
+      { symbol: "\u039e", label: "Xi", code: "\\Xi" },
+      { symbol: "\u03a0", label: "Pi", code: "\\Pi" },
+      { symbol: "\u03a3", label: "Sigma", code: "\\Sigma" },
+      { symbol: "\u03a5", label: "Upsilon", code: "\\Upsilon" },
+      { symbol: "\u03a6", label: "Phi", code: "\\Phi" },
+      { symbol: "\u03a8", label: "Psi", code: "\\Psi" },
+      { symbol: "\u03a9", label: "Omega", code: "\\Omega" },
+    ],
+  },
+  {
+    title: "Accents and Format Helpers",
+    helper: "Decorators and text-style symbols",
+    items: [
+      { symbol: "x^", label: "Hat", code: "\\hat{x}" },
+      { symbol: "x~", label: "Tilde", code: "\\tilde{x}" },
+      { symbol: "x-", label: "Bar", code: "\\bar{x}" },
+      { symbol: "v>", label: "Vector Arrow", code: "\\vec{v}" },
+      { symbol: "x.", label: "Dot", code: "\\dot{x}" },
+      { symbol: "x..", label: "Double Dot", code: "\\ddot{x}" },
+      { symbol: "AB-", label: "Overline", code: "\\overline{AB}" },
+      { symbol: "AB_", label: "Underline", code: "\\underline{AB}" },
+      { symbol: "[x]", label: "Boxed", code: "\\boxed{x}" },
+      { symbol: "a/b", label: "Fraction", code: "\\frac{a}{b}" },
+      { symbol: "nCr", label: "Binomial", code: "\\binom{n}{r}" },
+    ],
+  },
+  {
+    title: "Number Theory and Misc",
+    helper: "Special symbols used in advanced math",
+    items: [
+      { symbol: "\u2135", label: "Aleph", code: "\\aleph" },
+      { symbol: "\u2136", label: "Beth", code: "\\beth" },
+      { symbol: "\u2137", label: "Gimel", code: "\\gimel" },
+      { symbol: "\u2138", label: "Daleth", code: "\\daleth" },
+      { symbol: "\u210f", label: "h-bar", code: "\\hbar" },
+      { symbol: "\u2113", label: "Script l", code: "\\ell" },
+      { symbol: "\u2118", label: "Weierstrass p", code: "\\wp" },
+      { symbol: "\u211c", label: "Real Part", code: "\\Re" },
+      { symbol: "\u2111", label: "Imaginary Part", code: "\\Im" },
+      { symbol: "\u2127", label: "Mho", code: "\\mho" },
+      { symbol: "\u2020", label: "Dagger", code: "\\dagger" },
+      { symbol: "\u2021", label: "Double Dagger", code: "\\ddagger" },
+      { symbol: "\u2026", label: "Ellipsis", code: "\\cdots" },
+      { symbol: "\u22ee", label: "Vertical Dots", code: "\\vdots" },
+      { symbol: "\u22f1", label: "Diagonal Dots", code: "\\ddots" },
+      { symbol: "\u22ef", label: "Center Dots", code: "\\cdots" },
+    ],
+  },
+];
+
+const TOTAL_SYMBOLS = SYMBOL_GROUPS.reduce((sum, group) => sum + group.items.length, 0);
 const hasExplicitMathDelimiter = (value = "") =>
   /(\$\$[\s\S]*\$\$|\\\([\s\S]*\\\)|\\\[[\s\S]*\\\]|\$[^$\n]+\$)/.test(String(value || ""));
 
@@ -224,8 +513,154 @@ const EquationList = ({ title, helper, items, onUse }) => (
   </Paper>
 );
 
+const SymbolGroupList = ({ title, helper, items, onUse }) => (
+  <Paper
+    sx={{
+      borderRadius: 2.5,
+      border: "1px solid",
+      borderColor: "#e2e8f0",
+      minHeight: "fit-content",
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      flexShrink: 0,
+      background: "#ffffff",
+      boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
+    }}
+  >
+    <Box sx={{ p: { xs: 1, md: 1.2 }, borderBottom: "1px solid", borderColor: "#e2e8f0" }}>
+      <Typography sx={{ fontWeight: 800, fontSize: { xs: "0.84rem", md: "0.92rem", xl: "0.98rem" } }}>
+        {title}
+      </Typography>
+      <Typography color="text.secondary" sx={{ fontSize: { xs: "0.72rem", md: "0.8rem" } }}>
+        {helper}
+      </Typography>
+    </Box>
+
+    <Box sx={{ p: { xs: 0.8, md: 1 } }}>
+      <Stack spacing={0.9}>
+        {items.map((item) => (
+          <Paper
+            key={`${title}-${item.code}`}
+            variant="outlined"
+            sx={{
+              p: 0.85,
+              borderRadius: 1.75,
+              borderColor: "#dbe5f3",
+              background: "#fbfdff",
+            }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0.6}>
+              <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.76rem", md: "0.84rem" } }}>
+                {item.symbol} {item.label}
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => onUse(item.code)}
+                startIcon={<PlaylistAdd sx={{ fontSize: 15 }} />}
+                sx={{
+                  minWidth: "unset",
+                  px: 0.9,
+                  py: 0.22,
+                  fontSize: "0.72rem",
+                  borderRadius: 999,
+                  textTransform: "none",
+                  whiteSpace: "nowrap",
+                  fontWeight: 700,
+                  borderColor: "#bfdbfe",
+                  color: "#1d4ed8",
+                  bgcolor: "rgba(239,246,255,0.9)",
+                }}
+              >
+                Use in Editor
+              </Button>
+            </Stack>
+
+            <Box
+              component="pre"
+              sx={{
+                m: 0,
+                mt: 0.52,
+                p: 0.65,
+                fontSize: { xs: "0.74rem", md: "0.82rem", xl: "0.86rem" },
+                borderRadius: 1.2,
+                bgcolor: "#f1f5f9",
+                color: "#0f172a",
+                border: "1px solid #e2e8f0",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+              }}
+            >
+              {item.code}
+            </Box>
+          </Paper>
+        ))}
+      </Stack>
+    </Box>
+  </Paper>
+);
+
+const SymbolsDrawer = ({ open, onClose, onUse }) => (
+  <Drawer
+    anchor="right"
+    open={open}
+    onClose={onClose}
+    transitionDuration={{ enter: 0, exit: 0 }}
+    ModalProps={{ keepMounted: true }}
+    PaperProps={{
+      sx: {
+        width: { xs: "100%", sm: 430, md: 470 },
+        maxWidth: "100vw",
+        bgcolor: "#f8fafc",
+      },
+    }}
+  >
+    <Box sx={{ p: { xs: 1.1, md: 1.4 }, height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 0.8 }}>
+        <Box>
+          <Typography sx={{ fontWeight: 900, fontSize: { xs: "1.02rem", md: "1.12rem" } }}>
+            Symbol Sidebar
+          </Typography>
+          <Typography color="text.secondary" sx={{ fontSize: { xs: "0.76rem", md: "0.84rem" } }}>
+            {TOTAL_SYMBOLS} symbols grouped by type with LaTeX code
+          </Typography>
+        </Box>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onClose}
+          sx={{ textTransform: "none", borderRadius: 999, fontWeight: 700 }}
+        >
+          Close
+        </Button>
+      </Stack>
+
+      <Stack spacing={0.9} sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.1, alignItems: "stretch" }}>
+        {SYMBOL_GROUPS.map((group) => (
+          <SymbolGroupList
+            key={group.title}
+            title={group.title}
+            helper={`${group.helper} - ${group.items.length} symbols`}
+            items={group.items}
+            onUse={onUse}
+          />
+        ))}
+      </Stack>
+    </Box>
+  </Drawer>
+);
+
 export default function MathGuide() {
   const [liveInput, setLiveInput] = useState(DEFAULT_SNIPPET);
+  const [isSymbolsOpen, setIsSymbolsOpen] = useState(false);
+
+  const appendSymbolToEditor = (code = "") => {
+    const symbolCode = String(code || "").trim();
+    if (!symbolCode) return;
+    setLiveInput((prev) => (String(prev || "").trim() ? `${prev} ${symbolCode}` : symbolCode));
+  };
 
   return (
     <Box
@@ -461,18 +896,46 @@ export default function MathGuide() {
               boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
             }}
           >
-            <Typography
-              sx={{
-                fontWeight: 900,
-                color: "#0f172a",
-                fontSize: { xs: "1.02rem", sm: "1.12rem", md: "1.24rem", xl: "1.32rem" },
-              }}
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              justifyContent="space-between"
+              spacing={0.8}
             >
-              Freepare Equation Sidebar
-            </Typography>
-            <Typography color="text.secondary" sx={{ fontSize: { xs: "0.78rem", md: "0.88rem" }, mb: 0.8 }}>
-              Every equation has code + preview. Use in editor in one click.
-            </Typography>
+              <Box>
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    fontSize: { xs: "1.02rem", sm: "1.12rem", md: "1.24rem", xl: "1.32rem" },
+                  }}
+                >
+                  Freepare Equation Sidebar
+                </Typography>
+                <Typography color="text.secondary" sx={{ fontSize: { xs: "0.78rem", md: "0.88rem" }, mb: 0.8 }}>
+                  Every equation has code + preview. Use in editor in one click.
+                </Typography>
+              </Box>
+
+              <Button
+                variant="outlined"
+                startIcon={<Category />}
+                onClick={() => setIsSymbolsOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  px: 1.3,
+                  fontSize: { xs: "0.74rem", md: "0.8rem" },
+                  borderColor: "#bfdbfe",
+                  color: "#1d4ed8",
+                  bgcolor: "rgba(239,246,255,0.9)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Symbols
+              </Button>
+            </Stack>
 
             <Box
               sx={{
@@ -500,6 +963,14 @@ export default function MathGuide() {
           </Paper>
         </Grid>
       </Grid>
+
+      <SymbolsDrawer
+        open={isSymbolsOpen}
+        onClose={() => setIsSymbolsOpen(false)}
+        onUse={appendSymbolToEditor}
+      />
     </Box>
   );
 }
+
+
